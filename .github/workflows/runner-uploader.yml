@@ -1,0 +1,96 @@
+name: Runner (Uploader)
+
+on:
+  workflow_dispatch:
+    inputs:
+      vod-id:
+        required: true
+        type: string
+
+jobs:
+  twitch-vod-uploader:
+    name: Twitch VODS (Uploader)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display runner information
+        run: |
+          echo "cpu-core:       $(nproc --all)"
+          echo "cpu-model:      $(grep 'model name' /proc/cpuinfo | head -1 | cut -d: -f2- | sed 's/^[[:space:]]*//')"
+          echo "hostname:       $(hostname)"
+          echo "kernel-release: $(uname -r)"
+          echo "kernel-version: $(uname -v)"
+          echo "name:           $(grep '^NAME=' /etc/os-release | head -1 | cut -d= -f2- | tr -d '\"')"
+          echo "platform:       $(uname -s)"
+          echo "release:        $(grep '^VERSION_ID=' /etc/os-release | head -1 | cut -d= -f2- | tr -d '\"')"
+          echo "total-memory:   $(grep MemTotal /proc/meminfo | awk '{print $2 * 1024}')"
+
+      - name: Maximize build space
+        uses: AdityaGarg8/remove-unwanted-software@v5
+        with:
+          remove-dotnet: "true"
+          remove-android: "true"
+          remove-haskell: "true"
+          remove-codeql: "true"
+          remove-docker-images: "true"
+          remove-large-packages: "true"
+          remove-cached-tools: "true"
+          remove-swapfile: "true"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: "${{ github.repository_owner }}/twitch-vod-uploader-GitHub"
+          ref: "main"
+          path: "${{ github.workspace }}/"
+          sparse-checkout: |
+            /twitch_vods_uploader-GitHub.py
+            /requirements.txt
+          sparse-checkout-cone-mode: false
+          token: "${{ secrets.PAT }}"
+
+      - name: Checkout 8K60FPS-repository
+        uses: actions/checkout@v4
+        with:
+          repository: "${{ github.repository_owner }}/twitch-vod-extractor-and-combiner"
+          ref: "main"
+          path: "${{ github.workspace }}/8K 60FPS/"
+          sparse-checkout: |
+            /8K 60FPS - 7 frames.ts
+            /8K 60FPS - AV1 - init.mp4
+            /8K 60FPS - HEVC - init.mp4
+          sparse-checkout-cone-mode: false
+          token: "${{ secrets.PAT }}"
+
+      - name: Move files to workspace
+        run: |
+          mv "${{ github.workspace }}/8K 60FPS/8K 60FPS - 7 frames.ts" "${{ github.workspace }}/8K 60FPS - 7 frames.ts"
+          mv "${{ github.workspace }}/8K 60FPS/8K 60FPS - AV1 - init.mp4" "${{ github.workspace }}/8K 60FPS - AV1 - init.mp4"
+          mv "${{ github.workspace }}/8K 60FPS/8K 60FPS - HEVC - init.mp4" "${{ github.workspace }}/8K 60FPS - HEVC - init.mp4"
+          
+          rm -rf "${{ github.workspace }}/8K 60FPS"
+
+      - name: Set up Git
+        working-directory: "${{ github.workspace }}/"
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global http.postBuffer 104857600
+          git config --global push.autoSetupRemote true
+          git config --global diff.renames false
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r "${{ github.workspace }}/requirements.txt"
+
+      - name: Run twitch-vod-uploader
+        run: |
+          python ${{ github.workspace }}/twitch_vods_uploader-GitHub.py
+        env:
+          VOD_ID: "${{ inputs.vod-id }}"
+          DESTINATION_FOLDER: "${{ github.workspace }}"
+          GITHUB_TOKEN: "${{ secrets.PAT }}"
