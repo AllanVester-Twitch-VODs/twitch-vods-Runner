@@ -6,6 +6,10 @@ on:
       vod-id:
         required: true
         type: string
+      ffmpeg:
+        required: true
+        type: string
+        default: '0'
 
 jobs:
   twitch-vod-uploader:
@@ -79,6 +83,7 @@ jobs:
           git config --global diff.renames false
 
       - name: Install FFmpeg
+        if: ${{ inputs.ffmpeg == '1' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
