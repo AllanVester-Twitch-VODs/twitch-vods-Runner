@@ -6,6 +6,9 @@ on:
       vod-id:
         required: true
         type: string
+      github-user:
+        required: true
+        type: string
 
 jobs:
   twitch-vod-uploader:
@@ -54,10 +57,11 @@ jobs:
         run: |
           pip install -r "${{ github.workspace }}/requirements.txt"
 
-      - name: Run twitch-vod-uploader
+      - name: Run Twitch VOD Downloader
         run: |
           python ${{ github.workspace }}/twitch_vods_downloader-GitHub.py
         env:
           VOD_ID: "${{ inputs.vod-id }}"
           DESTINATION_FOLDER: "${{ github.workspace }}"
           GITHUB_TOKEN: "${{ secrets.PAT }}"
+          GITHUB_USER: "${{ inputs.github-user }}"
