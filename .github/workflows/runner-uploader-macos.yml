@@ -1,0 +1,113 @@
+name: Runner (Uploader) - macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      vod-id:
+        required: true
+        type: string
+      github-user:
+        required: true
+        type: string
+      ffmpeg:
+        required: true
+        type: string
+        default: '0'
+
+jobs:
+  twitch-vod-uploader-macos:
+    name: Twitch VODS (Uploader) - macOS
+    runs-on: macos-26-intel
+    steps:
+      - name: Display runner information
+        run: |
+          echo "cpu-core:       $(sysctl -n hw.ncpu)"
+          echo "cpu-model:      $(sysctl -n machdep.cpu.brand_string)"
+          echo "hostname:       $(hostname)"
+          echo "kernel-release: $(uname -r)"
+          echo "kernel-version: $(uname -v)"
+          echo "name:           $(sw_vers -productName)"
+          echo "platform:       $(uname -s)"
+          echo "release:        $(sw_vers -productVersion)"
+          echo "total-memory:   $(sysctl -n hw.memsize)"
+
+      - name: Maximize macOS Disk Space
+        run: |
+          echo "==> Available space before cleanup"
+          echo
+          df -h
+
+          sudo rm -rf /Users/runner/Library/Android/sdk
+          sudo rm -rf /usr/local/share/dotnet
+          sudo rm -rf /Applications/Xcode_*.app
+          sudo rm -rf /Users/runner/hostedtoolcache
+          rm -rf $(brew --cache)
+          
+          echo "==> Available space after cleanup"
+          echo
+          df -h
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          repository: "${{ github.repository_owner }}/twitch-vod-uploader-GitHub"
+          ref: "main"
+          path: "${{ github.workspace }}/"
+          sparse-checkout: |
+            /twitch_vods_uploader-GitHub.py
+            /requirements.txt
+          sparse-checkout-cone-mode: false
+          token: "${{ secrets.PAT }}"
+
+      - name: Checkout 8K60FPS-repository
+        uses: actions/checkout@v6
+        with:
+          repository: "${{ github.repository_owner }}/twitch-vod-extractor-and-combiner"
+          ref: "main"
+          path: "${{ github.workspace }}/8K 60FPS/"
+          sparse-checkout: |
+            /8K 60FPS - 7 frames.ts
+            /8K 60FPS - AV1 - init.mp4
+            /8K 60FPS - HEVC - init.mp4
+          sparse-checkout-cone-mode: false
+          token: "${{ secrets.PAT }}"
+
+      - name: Move files to workspace
+        run: |
+          mv "${{ github.workspace }}/8K 60FPS/8K 60FPS - 7 frames.ts" "${{ github.workspace }}/8K 60FPS - 7 frames.ts"
+          mv "${{ github.workspace }}/8K 60FPS/8K 60FPS - AV1 - init.mp4" "${{ github.workspace }}/8K 60FPS - AV1 - init.mp4"
+          mv "${{ github.workspace }}/8K 60FPS/8K 60FPS - HEVC - init.mp4" "${{ github.workspace }}/8K 60FPS - HEVC - init.mp4"
+          
+          rm -rf "${{ github.workspace }}/8K 60FPS"
+
+      - name: Set up Git
+        working-directory: "${{ github.workspace }}/"
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global http.postBuffer 104857600
+          git config --global push.autoSetupRemote true
+          git config --global diff.renames false
+
+      - name: Install FFmpeg
+        if: ${{ inputs.ffmpeg == '1' }}
+        run: |
+          brew install ffmpeg
+
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r "${{ github.workspace }}/requirements.txt"
+
+      - name: Run Twitch VOD Uploader
+        run: |
+          python ${{ github.workspace }}/twitch_vods_uploader-GitHub.py
+        env:
+          VOD_ID: "${{ inputs.vod-id }}"
+          DESTINATION_FOLDER: "${{ github.workspace }}"
+          GITHUB_TOKEN: "${{ secrets.PAT }}"
+          GITHUB_USER: "${{ inputs.github-user }}"
