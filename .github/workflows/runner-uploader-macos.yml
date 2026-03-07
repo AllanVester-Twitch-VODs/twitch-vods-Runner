@@ -9,10 +9,7 @@ on:
       github-user:
         required: true
         type: string
-      ffmpeg:
-        required: true
-        type: string
-        default: '0'
+        default: "AllanVester-Twitch-VODs"
 
 jobs:
   twitch-vod-uploader-macos:
@@ -90,7 +87,6 @@ jobs:
           git config --global diff.renames false
 
       - name: Install FFmpeg
-        if: ${{ inputs.ffmpeg == '1' }}
         run: |
           brew install ffmpeg
 
