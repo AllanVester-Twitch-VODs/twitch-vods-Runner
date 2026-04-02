@@ -28,7 +28,7 @@ jobs:
           echo "total-memory:   $(grep MemTotal /proc/meminfo | awk '{print $2 * 1024}')"
           
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: "${{ github.repository_owner }}/twitch-vod-uploader-GitHub"
           ref: "main"
