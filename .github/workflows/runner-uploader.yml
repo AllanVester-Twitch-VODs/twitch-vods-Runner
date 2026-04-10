@@ -9,6 +9,7 @@ on:
       github-user:
         required: true
         type: string
+        default: "AllanVester-Twitch-VODs"
       ffmpeg:
         required: true
         type: string
