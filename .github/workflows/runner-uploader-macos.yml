@@ -56,27 +56,6 @@ jobs:
           sparse-checkout-cone-mode: false
           token: "${{ secrets.PAT }}"
 
-      - name: Checkout 8K60FPS-repository
-        uses: actions/checkout@v6
-        with:
-          repository: "${{ github.repository_owner }}/twitch-vod-extractor-and-combiner"
-          ref: "main"
-          path: "${{ github.workspace }}/8K 60FPS/"
-          sparse-checkout: |
-            /8K 60FPS - 7 frames.ts
-            /8K 60FPS - AV1 - init.mp4
-            /8K 60FPS - HEVC - init.mp4
-          sparse-checkout-cone-mode: false
-          token: "${{ secrets.PAT }}"
-
-      - name: Move files to workspace
-        run: |
-          mv "${{ github.workspace }}/8K 60FPS/8K 60FPS - 7 frames.ts" "${{ github.workspace }}/8K 60FPS - 7 frames.ts"
-          mv "${{ github.workspace }}/8K 60FPS/8K 60FPS - AV1 - init.mp4" "${{ github.workspace }}/8K 60FPS - AV1 - init.mp4"
-          mv "${{ github.workspace }}/8K 60FPS/8K 60FPS - HEVC - init.mp4" "${{ github.workspace }}/8K 60FPS - HEVC - init.mp4"
-          
-          rm -rf "${{ github.workspace }}/8K 60FPS"
-
       - name: Set up Git
         working-directory: "${{ github.workspace }}/"
         run: |
